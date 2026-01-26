@@ -1,0 +1,24 @@
+<!Doctype html> 
+<html> 
+    <head>
+        <title>
+            {% if title %}
+               FastAPI Blog - {{title}}
+            {% else %}
+                FastAPI Blog
+
+            {% endif %}
+
+        </title>
+    </head>
+    <body>
+        <h1>Home page</h1>
+            {% for post in posts %}
+            <h2>{{post.title}}</h2>
+            <p>{{post.content}}</p>
+
+             {% endfor %}
+        
+    </body>
+
+</html>

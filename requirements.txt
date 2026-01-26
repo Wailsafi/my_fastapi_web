@@ -1,2 +1,3 @@
-fastapi==0.128.0
-gunicorn==24.1.1
+fastapi[standard]
+
+
