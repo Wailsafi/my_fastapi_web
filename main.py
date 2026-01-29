@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException, Request, status
 from fastapi.staticfiles import StaticFiles
 
 
@@ -35,9 +35,34 @@ app.mount("/static",StaticFiles(directory="static"),name="static")
 def home(request: Request):
     return templates.TemplateResponse(request,"home.html", {"posts":posts, "title":"home"})
 
+
+@app.get("/posts/{post_id}", include_in_schema=False)
+def post_page(request: Request, post_id: int):
+    for post in posts :
+         if post.get("id")==post_id:
+              title=post['title'][:15]
+              return templates.TemplateResponse(request,"post.html", {"post":post, "title":title })
+
+    raise HTTPException(status_code =status.HTTP_404_NOT_FOUND, detail="post not found")
+
+
 @app.get("/api/posts")
 def get_posts():
     return  posts 
+
+@app.get("/api/posts/{post_id}")
+def get_post(post_id: int):
+    for post in posts :
+         if post.get("id")==post_id:
+               return post
+    raise HTTPException(status_code =status.HTTP_404_NOT_FOUND, detail="post not found")
+
+
+
+
+
+
+
 
 
 
