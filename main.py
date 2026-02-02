@@ -1,19 +1,19 @@
-from fastapi import FastAPI, Request, HTTPException, Request, status
+from fastapi import FastAPI, Request, HTTPException, Request, status ,Depends
 from starlette.exceptions import HTTPException as StarletteHTTPException 
 from fastapi.staticfiles import StaticFiles
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from schemas import PostCreate, PostResponse
+from schemas import PostCreate, PostResponse , UserCreate, UserResponse
 from sqlalchemy  import select
 from sqlalchemy import Session 
 
 import models 
 from database import Base, engine, get_db 
 
-from schemas import  PostCreate, PostResponse
+from schemas import  PostCreate, PostResponse, PostCreate, PostResponse 
 
-from typing import PostCreate, PostResponse 
+from typing import Annotated
 
 from fastapi.templating import Jinja2Templates
 Base.metadata.create_all(bind=engine)
@@ -52,6 +52,8 @@ posts: list[dict] = [
 @app.get("/posts", include_in_schema=False)
 def home(request: Request):
     return templates.TemplateResponse(request,"home.html", {"posts":posts, "title":"home"})
+
+
 @app.post("/api/posts",response_model=PostResponse, status_code=status.HTTP_201_CREATED,)
 def create_post(post:PostCreate):
      new_id= max (p["id"] for p in posts)+1 if posts else 1
@@ -75,6 +77,38 @@ def post_page(request: Request, post_id: int):
               return templates.TemplateResponse(request,"post.html", {"post":post, "title":title })
 
     raise HTTPException(status_code =status.HTTP_404_NOT_FOUND, detail="post not found")
+
+
+
+
+
+@app.post("/api/Users",response_model=UserResponse, status_code=status.HTTP_201_CREATED,)
+def create_user(user : UserCreate, db: Annotated[Session , Depends(get_db)]):
+    result = db.execute(select(models.User).where(models.User.username==user.username))
+    existing_user=result.scalars().first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="username already exist ",
+        )
+     
+    result = db.execute(select(models.User).where(models.User.email==user.email))
+    existing_email=result.scalars().first()
+    if existing_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="username already exist ",
+        )
+    
+    new_user=models.User(
+        username = user.username,
+        email=user.email
+    )
+    db.add(new_user) ## this stages the insert 
+    db.commit()     ## excutes it and saves it to the database
+    db.refresh(new_user)  ###  reloads the object from the database 
+    
+
 
 
 @app.get("/api/posts", response_model=list[PostResponse])
