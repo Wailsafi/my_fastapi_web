@@ -5,11 +5,25 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from schemas import PostCreate, PostResponse
+from sqlalchemy  import select
+from sqlalchemy import Session 
 
+import models 
+from database import Base, engine, get_db 
 
+from schemas import  PostCreate, PostResponse
 
+from typing import PostCreate, PostResponse 
 
 from fastapi.templating import Jinja2Templates
+Base.metadata.create_all(bind=engine)
+
+
+app=FastAPI()
+
+app.mount("/static",StaticFiles(directory="static"),name="static")
+app.mount("/media", StaticFiles(directory="media"), name="media")
+templates=Jinja2Templates(directory="templates")
 
 
 
@@ -31,15 +45,26 @@ posts: list[dict] = [
     },
 ]
 
-app=FastAPI()
-templates=Jinja2Templates(directory="templates")
-app.mount("/static",StaticFiles(directory="static"),name="static")
+
 
 
 @app.get("/", include_in_schema=False)   # include_in_schema : to allow the router works but it does not apear in the docs of fastapi 
 @app.get("/posts", include_in_schema=False)
 def home(request: Request):
     return templates.TemplateResponse(request,"home.html", {"posts":posts, "title":"home"})
+@app.post("/api/posts",response_model=PostResponse, status_code=status.HTTP_201_CREATED,)
+def create_post(post:PostCreate):
+     new_id= max (p["id"] for p in posts)+1 if posts else 1
+     new_post={
+          "id":new_id,
+          "author":post.author,
+          "title":post.title, 
+          "content":post.content,
+          "date_posted":"january 31 2025",
+     }
+     posts.append(new_post)
+     return new_post
+
 
 
 @app.get("/posts/{post_id}", include_in_schema=False)
