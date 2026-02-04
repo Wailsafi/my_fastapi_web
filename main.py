@@ -48,9 +48,12 @@ posts: list[dict] = [
 
 
 
-@app.get("/", include_in_schema=False)   # include_in_schema : to allow the router works but it does not apear in the docs of fastapi 
-@app.get("/posts", include_in_schema=False)
-def home(request: Request):
+@app.get("/", include_in_schema=False, name="home")   # include_in_schema : to allow the router works but it does not apear in the docs of fastapi 
+@app.get("/posts", include_in_schema=False, name="posts")
+def home(request: Request, db:Annotated[Session, Depends(get_db)]):
+    result=db.execute(select
+                      (models.Post))
+    posts=result.scalars().all()
     return templates.TemplateResponse(request,"home.html", {"posts":posts, "title":"home"})
 
 
@@ -107,6 +110,46 @@ def create_user(user : UserCreate, db: Annotated[Session , Depends(get_db)]):
     db.add(new_user) ## this stages the insert 
     db.commit()     ## excutes it and saves it to the database
     db.refresh(new_user)  ###  reloads the object from the database 
+
+
+
+
+
+
+@app.get("/api/users/{user_id}",response_model=UserResponse)
+def get_user(user_id: int, db: Annotated[Session , Depends(get_db)]):
+    result = db.execute(select(models.User).where(models.User.id==user_id)) 
+
+    user= result.scalars().first()
+
+    if user : 
+        return user 
+    raise HTTPException( status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+@app.get("/api/users/{user_id}/posts",response_model=list[PostResponse])
+def get_user_psots(user_id:int, db:Annotated[Session, Depends(get_db)]):
+    result= db.execute(select(models.User).where(models.User.id==user_id))
+    user=result.scalars().first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detil="User not found"
+        )
+
+    result=db.execute(select(models.Post).where(models.Post.user_id==user_id))
+
+    posts=result.scalars().all()
+
+    return posts 
+
+
+
+   
+
+     
+
+    
     
 
 
