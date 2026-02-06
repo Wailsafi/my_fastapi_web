@@ -19,7 +19,7 @@ class User(Base):
         nullable=True,
         default=None,
     )
-    Posts: Mapped[list[Post]] = relationship(back_populates="author")
+    Posts: Mapped[list[Post]] = relationship(back_populates="author",cascade="all, delete-orphan")
 
     @property 
     def image_path(self)->str:
@@ -32,7 +32,7 @@ class Post(Base):
     id:Mapped[str]=mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str]=mapped_column(String(100), nullable=False)
     content: Mapped[str]=mapped_column(Text, nullable=False)
-    user_id: Mapped[int]=mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int]=mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     date_posted: Mapped[datetime]=mapped_column(DateTime(timezone=True),
                                                 default=lambda: datetime.now(UTC))
     author: Mapped[User]= relationship(back_populates="Posts")

@@ -306,7 +306,7 @@ def update_post_partial(post_id: int,
 
 
 
-@app.delete("/api/posts", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/api/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(post_id : int , db: Annotated[Session, Depends(get_db)]):
     result = db.execute(select(models.Post).where(models.Post.id==post_id))
     post = result.scalars().first()
@@ -317,6 +317,22 @@ def delete_post(post_id : int , db: Annotated[Session, Depends(get_db)]):
         )
     db.delete(post)
     db.commit()
+
+
+
+@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id :int , db: Annotated[Session, Depends(get_db)]):
+    result=db.execute(select(models.User).where((models.User.id==user_id)))
+
+    user=result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="user not found"
+        )
+    db.delete(user)
+    db.commit()
+    
     
 
 
