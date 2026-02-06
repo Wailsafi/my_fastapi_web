@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from schemas import PostCreate, PostResponse , UserCreate, UserResponse
 from sqlalchemy  import select
-from sqlalchemy import Session 
+from sqlalchemy.orm import Session
 
 import models 
 from database import Base, engine, get_db 
@@ -71,9 +71,9 @@ def create_post(post:PostCreate, db:Annotated[Session, Depends(get_db)]):
         
         new_post=models.Post(
 
-            title=post.title
-            author=post.author
-            user_id=psot.user_id
+            title=post.title,
+            author=post.author,
+            user_id=post.user_id
         )
 
         db.add(new_post)
@@ -152,7 +152,7 @@ def user_post_page(request:Request, user_id: int, db: Annotated[Session, Depends
     posts=result.scalars().all()
     return templates.TemplateResponse(
         request,
-        "user_posts.html"
+        "user_posts.html",
         {"posts":posts, "user":user, "title":f"{user.username}'s Posts"}
     )
     
@@ -201,8 +201,15 @@ def get_user_psots(user_id:int, db:Annotated[Session, Depends(get_db)]):
 
 
 @app.get("/api/posts", response_model=list[PostResponse])
-def get_posts():
-    return  posts 
+def get_posts(db: Annotated[Session, Depends(get_db)]):
+    result = db.execute(select(models.Post))
+    posts = result.scalars().all()
+    if not posts:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="there is no post yet "
+        )
+    return posts
 
 @app.get("/api/posts/{post_id}",response_model=PostResponse)
 def get_post(post_id: int):
