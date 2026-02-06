@@ -72,7 +72,8 @@ def create_post(post:PostCreate, db:Annotated[Session, Depends(get_db)]):
         new_post=models.Post(
 
             title=post.title,
-            author=post.author,
+            author=user,
+            content=post.content,
             user_id=post.user_id
         )
 
@@ -212,11 +213,13 @@ def get_posts(db: Annotated[Session, Depends(get_db)]):
     return posts
 
 @app.get("/api/posts/{post_id}",response_model=PostResponse)
-def get_post(post_id: int):
-    for post in posts :
-         if post.get("id")==post_id:
-               return post
-    raise HTTPException(status_code =status.HTTP_404_NOT_FOUND, detail="post not found")
+def get_post(post_id: int, db:Annotated[Session , Depends(get_db)]):
+    result = db.execute(select(models.Post).where(models.Post.id==post_id))
+    post=result.scalars().first()
+    if not post :
+         raise HTTPException(status_code =status.HTTP_404_NOT_FOUND, detail="post not found")
+
+    return post
 
 @app.exception_handler(StarletteHTTPException)
 def general_http_exception_handler(request: Request, exception: StarletteHTTPException):
