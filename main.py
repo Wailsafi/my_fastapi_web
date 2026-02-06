@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from schemas import PostCreate, PostResponse , UserCreate, UserResponse, PostUpdate
+from schemas import PostCreate, PostResponse , UserCreate, UserResponse, PostUpdate , UserUpdate
 from sqlalchemy  import select
 from sqlalchemy.orm import Session
 
@@ -25,25 +25,6 @@ app.mount("/static",StaticFiles(directory="static"),name="static")
 app.mount("/media", StaticFiles(directory="media"), name="media")
 templates=Jinja2Templates(directory="templates")
 
-
-
-
-posts: list[dict] = [
-    {
-        "id": 1,
-        "author": "Wail",
-        "title": "FastAPI is Awesome",
-        "content": "This framework is really easy to use and super fast.",
-        "date_posted": "April 20, 2025",
-    },
-    {
-        "id": 2,
-        "author": "wassim",
-        "title": "Python is Great for Web Development",
-        "content": "Python is a great language for web development, and FastAPI makes it even better.",
-        "date_posted": "April 21, 2025",
-    },
-]
 
 
 
@@ -136,6 +117,56 @@ def create_user(user : UserCreate, db: Annotated[Session , Depends(get_db)]):
     db.refresh(new_user)  ###  reloads the object from the database 
 
     return new_user
+
+
+@app.patch("/api/users/{user_id}", response_model=UserResponse)
+def update_user(user_id: int ,user_update:UserUpdate, db: Annotated[Session,Depends(get_db)]):
+    result=db.execute(select(models.User).where(models.User.id==user_id))
+    user=result.scalars().first()
+
+    if not user :
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="user not found"
+        )
+    
+
+    if user_update.username !=None and user_update.username!=user.username:
+        result=db.execute(select(models.User).where(models.User.username==user_update.username))
+        existing_user=result.scalars().first()
+        if existing_user:
+            raise HTTPException(
+             status_code=status.HTTP_400_BAD_REQUEST,
+             detail="username already exists"
+
+            )
+    if user_update.email is not None and user_update.email!=user.email:
+        result=db.execute(select(models.User).where(models.User.email==user.email))
+        existing_email=result.scalars().first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="email already exists"
+            )
+        
+
+
+
+    updated_user=user_update.model_dump(exclude_unset=True)
+
+    for field , value in updated_user.items():
+        setattr(user,field , value)
+
+    db.commit()
+    db.refresh(user)
+    return user
+    
+
+
+
+
+
+
 
 
 
@@ -252,7 +283,7 @@ def update_post_full(post_id: int,
 
 
 
-@app.put("/api/post/{post_id}",response_model=PostResponse)
+@app.patch("/api/post/{post_id}",response_model=PostResponse)
 def update_post_partial(post_id: int, 
                      post_data:PostUpdate ,
                      db:Annotated[Session , 
