@@ -19,7 +19,7 @@ class User(Base):
         nullable=True,
         default=None,
     )
-    posts: Mapped[list[Post]] = relationship(back_populates="author")
+    Posts: Mapped[list[Post]] = relationship(back_populates="author")
 
     @property 
     def image_path(self)->str:

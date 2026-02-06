@@ -26,6 +26,9 @@ class PostBase(BaseModel):
     
 class PostCreate(PostBase):
     user_id:int
+class PostUpdate(BaseModel):
+    title:str |None = Field(default=None, min_length=1, max_length=100)
+    content: str | None = Field(default=None, min_length=1 )
     
 class PostResponse(PostBase):
     model_config=ConfigDict(from_attributes=True)  #" to allow pydantic to accept the data that is coming from the db and doesn't have a dictionary format"
